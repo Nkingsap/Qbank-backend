@@ -1,0 +1,15 @@
+name = "qbankv2-backend"
+main = "src/index.js"
+compatibility_date = "2026-01-10"
+compatibility_flags = ["nodejs_compat"]
+
+# Routes - configure in Cloudflare dashboard after deployment
+# routes = [
+#     { pattern = "yourdomain.com/api/*", zone_name = "yourdomain.com" }
+# ]
+
+# Environment variables - set via `wrangler secret put` for production
+# For local dev, use .dev.vars file
+# wrangler secret put SUPABASE_URL
+# wrangler secret put SUPABASE_ANON_KEY
+# wrangler secret put SUPABASE_SERVICE_ROLE_KEY
