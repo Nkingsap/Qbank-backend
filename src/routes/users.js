@@ -14,9 +14,9 @@ export async function handleUsersRoute(request, supabase, pathname, supabaseAdmi
 
     // GET /api/users — list all admin users (requires auth)
     if (pathname === '/api/users' && method === 'GET') {
-        const { user, error: authErr } = await requireAuth(request, env);
+        const { user, role, error: authErr } = await requireAuth(request, env);
         if (authErr) return authErr;
-        const roleErr = requireRole(user, ['super_admin', 'dept_admin'], request);
+        const roleErr = requireRole(role, ['super_admin', 'dept_admin'], request);
         if (roleErr) return roleErr;
 
         try {
@@ -93,9 +93,9 @@ export async function handleUsersRoute(request, supabase, pathname, supabaseAdmi
     // PUT /api/users/:id — update user (requires auth)
     const putMatch = pathname.match(/^\/api\/users\/([^/]+)$/);
     if (putMatch && method === 'PUT') {
-        const { user, error: authErr } = await requireAuth(request, env);
+        const { user, role, error: authErr } = await requireAuth(request, env);
         if (authErr) return authErr;
-        const roleErr = requireRole(user, ['super_admin', 'dept_admin'], request);
+        const roleErr = requireRole(role, ['super_admin', 'dept_admin'], request);
         if (roleErr) return roleErr;
 
         try {
@@ -145,6 +145,11 @@ export async function handleUsersRoute(request, supabase, pathname, supabaseAdmi
     // DELETE /api/users/:id — delete user
     const deleteMatch = pathname.match(/^\/api\/users\/([^/]+)$/);
     if (deleteMatch && method === 'DELETE') {
+        const { user, role, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(role, ['super_admin', 'dept_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             if (!supabaseAdmin) {
                 return errorResponse('Admin access required', 403, null, request);

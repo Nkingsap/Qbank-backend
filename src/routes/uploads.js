@@ -11,9 +11,9 @@ export async function handleUploadsRoute(request, supabaseAdmin, pathname, env) 
     // POST /api/uploads — upload a file to Supabase Storage
     if (pathname === '/api/uploads' && method === 'POST') {
         // Verify the caller is an authenticated admin before touching storage
-        const { user, error: authErr } = await requireAuth(request, env);
+        const { user, role, error: authErr } = await requireAuth(request, env);
         if (authErr) return authErr;
-        const roleErr = requireRole(user, ['dept_admin', 'super_admin'], request);
+        const roleErr = requireRole(role, ['dept_admin', 'super_admin'], request);
         if (roleErr) return roleErr;
 
         try {

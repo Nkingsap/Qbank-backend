@@ -125,9 +125,9 @@ export async function handlePapersRoute(request, supabase, pathname, supabaseAdm
 
     // POST /api/papers — create (dept_admin or super_admin)
     if (pathname === '/api/papers' && method === 'POST') {
-        const { user, error: authErr } = await requireAuth(request, env);
+        const { user, role, error: authErr } = await requireAuth(request, env);
         if (authErr) return authErr;
-        const roleErr = requireRole(user, ['dept_admin', 'super_admin'], request);
+        const roleErr = requireRole(role, ['dept_admin', 'super_admin'], request);
         if (roleErr) return roleErr;
 
         try {
@@ -167,9 +167,9 @@ export async function handlePapersRoute(request, supabase, pathname, supabaseAdm
     // PUT /api/papers/:id — update (dept_admin or super_admin)
     const putMatch = pathname.match(/^\/api\/papers\/([^/]+)$/);
     if (putMatch && method === 'PUT') {
-        const { user, error: authErr } = await requireAuth(request, env);
+        const { user, role, error: authErr } = await requireAuth(request, env);
         if (authErr) return authErr;
-        const roleErr = requireRole(user, ['dept_admin', 'super_admin'], request);
+        const roleErr = requireRole(role, ['dept_admin', 'super_admin'], request);
         if (roleErr) return roleErr;
 
         try {
@@ -193,9 +193,9 @@ export async function handlePapersRoute(request, supabase, pathname, supabaseAdm
     // DELETE /api/papers/:id — (dept_admin or super_admin)
     const deleteMatch = pathname.match(/^\/api\/papers\/([^/]+)$/);
     if (deleteMatch && method === 'DELETE') {
-        const { user, error: authErr } = await requireAuth(request, env);
+        const { user, role, error: authErr } = await requireAuth(request, env);
         if (authErr) return authErr;
-        const roleErr = requireRole(user, ['dept_admin', 'super_admin'], request);
+        const roleErr = requireRole(role, ['dept_admin', 'super_admin'], request);
         if (roleErr) return roleErr;
 
         try {
