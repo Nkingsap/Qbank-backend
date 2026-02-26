@@ -1,4 +1,5 @@
 import { jsonResponse, errorResponse } from '../lib/response.js';
+import { requireAuth, requireRole } from '../lib/auth.js';
 
 /**
  * Handle user (admin) routes
@@ -11,8 +12,13 @@ export async function handleUsersRoute(request, supabase, pathname, supabaseAdmi
     const method = request.method;
     const db = supabaseAdmin || supabase;
 
-    // GET /api/users — list all admin users
+    // GET /api/users — list all admin users (requires auth)
     if (pathname === '/api/users' && method === 'GET') {
+        const { user, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(user, ['super_admin', 'dept_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             const url = new URL(request.url);
             const deptId = url.searchParams.get('department');
@@ -84,9 +90,14 @@ export async function handleUsersRoute(request, supabase, pathname, supabaseAdmi
         }
     }
 
-    // PUT /api/users/:id — update user
+    // PUT /api/users/:id — update user (requires auth)
     const putMatch = pathname.match(/^\/api\/users\/([^/]+)$/);
     if (putMatch && method === 'PUT') {
+        const { user, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(user, ['super_admin', 'dept_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             const body = await request.json();
             const userId = putMatch[1];

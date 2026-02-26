@@ -28,6 +28,32 @@ export async function handleUploadsRoute(request, supabaseAdmin, pathname, env) 
                 return errorResponse('No file provided', 400, null, request);
             }
 
+            // ── Validation layer 1: MIME type (client-reported, but still useful) ──
+            const allowedMimeTypes = ['application/pdf'];
+            if (!allowedMimeTypes.includes(file.type)) {
+                return errorResponse('Invalid file type. Only PDF files are allowed.', 400, null, request);
+            }
+
+            // ── Validation layer 2: File extension ──
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            if (fileExt !== 'pdf') {
+                return errorResponse('Invalid file extension. Only .pdf files are allowed.', 400, null, request);
+            }
+
+            // ── Validation layer 3: Magic bytes (%PDF) ──
+            // Read only the first 4 bytes to verify the real file signature
+            const headerSlice = file.slice(0, 4);
+            const headerBuffer = await headerSlice.arrayBuffer();
+            const headerBytes = new Uint8Array(headerBuffer);
+            const isPdf =
+                headerBytes[0] === 0x25 && // %
+                headerBytes[1] === 0x50 && // P
+                headerBytes[2] === 0x44 && // D
+                headerBytes[3] === 0x46;   // F
+            if (!isPdf) {
+                return errorResponse('File content is not a valid PDF.', 400, null, request);
+            }
+
             // Generate a unique filename
             const timestamp = Date.now();
             const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
