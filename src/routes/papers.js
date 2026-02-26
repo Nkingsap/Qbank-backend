@@ -1,20 +1,21 @@
 import { jsonResponse, errorResponse } from '../lib/response.js';
+import { requireAuth, requireRole } from '../lib/auth.js';
 
 /**
  * Handle paper routes
- * GET    /api/papers
- * GET    /api/papers/:id
- * POST   /api/papers
- * PUT    /api/papers/:id
- * DELETE /api/papers/:id
- * POST   /api/papers/:id/views
- * POST   /api/papers/:id/downloads
+ * GET    /api/papers              — public
+ * GET    /api/papers/:id          — public
+ * POST   /api/papers/:id/views    — public (anonymous counter)
+ * POST   /api/papers/:id/downloads — public (anonymous counter)
+ * POST   /api/papers              — dept_admin or super_admin
+ * PUT    /api/papers/:id          — dept_admin or super_admin
+ * DELETE /api/papers/:id          — dept_admin or super_admin
  */
 export async function handlePapersRoute(request, supabase, pathname, supabaseAdmin, env) {
     const method = request.method;
     const db = supabaseAdmin || supabase;
 
-    // GET /api/papers — list with filters
+    // GET /api/papers — list with filters (public)
     if (pathname === '/api/papers' && method === 'GET') {
         try {
             const url = new URL(request.url);
@@ -55,7 +56,7 @@ export async function handlePapersRoute(request, supabase, pathname, supabaseAdm
         }
     }
 
-    // POST /api/papers/:id/views — increment views
+    // POST /api/papers/:id/views — increment views (public — anonymous counter)
     const viewsMatch = pathname.match(/^\/api\/papers\/([^/]+)\/views$/);
     if (viewsMatch && method === 'POST') {
         try {
@@ -79,7 +80,7 @@ export async function handlePapersRoute(request, supabase, pathname, supabaseAdm
         }
     }
 
-    // POST /api/papers/:id/downloads — increment downloads
+    // POST /api/papers/:id/downloads — increment downloads (public — anonymous counter)
     const downloadsMatch = pathname.match(/^\/api\/papers\/([^/]+)\/downloads$/);
     if (downloadsMatch && method === 'POST') {
         try {
@@ -103,7 +104,7 @@ export async function handlePapersRoute(request, supabase, pathname, supabaseAdm
         }
     }
 
-    // GET /api/papers/:id — single paper
+    // GET /api/papers/:id — single paper (public)
     const getMatch = pathname.match(/^\/api\/papers\/([^/]+)$/);
     if (getMatch && method === 'GET') {
         try {
@@ -122,8 +123,13 @@ export async function handlePapersRoute(request, supabase, pathname, supabaseAdm
         }
     }
 
-    // POST /api/papers — create
+    // POST /api/papers — create (dept_admin or super_admin)
     if (pathname === '/api/papers' && method === 'POST') {
+        const { user, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(user, ['dept_admin', 'super_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             const body = await request.json();
             const { subject, subject_code, department_id, semester, exam_type, year, description, file_url, uploaded_by, uploaded_by_name } = body;
@@ -158,9 +164,14 @@ export async function handlePapersRoute(request, supabase, pathname, supabaseAdm
         }
     }
 
-    // PUT /api/papers/:id — update
+    // PUT /api/papers/:id — update (dept_admin or super_admin)
     const putMatch = pathname.match(/^\/api\/papers\/([^/]+)$/);
     if (putMatch && method === 'PUT') {
+        const { user, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(user, ['dept_admin', 'super_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             const body = await request.json();
             const { data, error } = await db
@@ -179,9 +190,14 @@ export async function handlePapersRoute(request, supabase, pathname, supabaseAdm
         }
     }
 
-    // DELETE /api/papers/:id
+    // DELETE /api/papers/:id — (dept_admin or super_admin)
     const deleteMatch = pathname.match(/^\/api\/papers\/([^/]+)$/);
     if (deleteMatch && method === 'DELETE') {
+        const { user, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(user, ['dept_admin', 'super_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             const { error } = await db.from('papers').delete().eq('id', deleteMatch[1]);
             if (error) throw error;

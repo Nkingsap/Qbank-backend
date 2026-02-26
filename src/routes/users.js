@@ -108,11 +108,21 @@ export async function handleUsersRoute(request, supabase, pathname, supabaseAdmi
             if (error) throw error;
             if (!data) return errorResponse('User not found', 404, null, request);
 
-            // If password is being changed, update via admin auth
-            if (body.password && supabaseAdmin) {
-                await supabaseAdmin.auth.admin.updateUserById(userId, {
-                    password: body.password,
-                });
+            // If password is being changed
+            if (body.password) {
+                if (supabaseAdmin) {
+                    // Admin client can update any user's password
+                    const { error: pwError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+                        password: body.password,
+                    });
+                    if (pwError) throw pwError;
+                } else {
+                    // Fallback: user updating their own password via the regular client
+                    const { error: pwError } = await supabase.auth.updateUser({
+                        password: body.password,
+                    });
+                    if (pwError) throw pwError;
+                }
             }
 
             return jsonResponse(data, 200, request);

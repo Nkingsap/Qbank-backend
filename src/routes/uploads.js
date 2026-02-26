@@ -1,14 +1,21 @@
 import { jsonResponse, errorResponse } from '../lib/response.js';
+import { requireAuth, requireRole } from '../lib/auth.js';
 
 /**
  * Handle file upload routes
- * POST /api/uploads
+ * POST /api/uploads — dept_admin or super_admin only
  */
 export async function handleUploadsRoute(request, supabaseAdmin, pathname, env) {
     const method = request.method;
 
     // POST /api/uploads — upload a file to Supabase Storage
     if (pathname === '/api/uploads' && method === 'POST') {
+        // Verify the caller is an authenticated admin before touching storage
+        const { user, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(user, ['dept_admin', 'super_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             if (!supabaseAdmin) {
                 return errorResponse('Admin access required for uploads', 403, null, request);

@@ -1,18 +1,19 @@
 import { jsonResponse, errorResponse } from '../lib/response.js';
+import { requireAuth, requireRole } from '../lib/auth.js';
 
 /**
  * Handle department routes
- * GET    /api/departments
- * GET    /api/departments/:id
- * POST   /api/departments
- * PUT    /api/departments/:id
- * DELETE /api/departments/:id
+ * GET    /api/departments         — public
+ * GET    /api/departments/:id     — public
+ * POST   /api/departments         — super_admin only
+ * PUT    /api/departments/:id     — super_admin only
+ * DELETE /api/departments/:id     — super_admin only
  */
 export async function handleDepartmentsRoute(request, supabase, pathname, supabaseAdmin, env) {
     const method = request.method;
     const db = supabaseAdmin || supabase;
 
-    // GET /api/departments — list all
+    // GET /api/departments — list all (public)
     if (pathname === '/api/departments' && method === 'GET') {
         try {
             const { data, error } = await db
@@ -27,7 +28,7 @@ export async function handleDepartmentsRoute(request, supabase, pathname, supaba
         }
     }
 
-    // GET /api/departments/:id
+    // GET /api/departments/:id (public)
     const getMatch = pathname.match(/^\/api\/departments\/([^/]+)$/);
     if (getMatch && method === 'GET') {
         try {
@@ -46,8 +47,13 @@ export async function handleDepartmentsRoute(request, supabase, pathname, supaba
         }
     }
 
-    // POST /api/departments — create
+    // POST /api/departments — create (super_admin only)
     if (pathname === '/api/departments' && method === 'POST') {
+        const { user, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(user, ['super_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             const body = await request.json();
             const { name, code } = body;
@@ -80,9 +86,14 @@ export async function handleDepartmentsRoute(request, supabase, pathname, supaba
         }
     }
 
-    // PUT /api/departments/:id — update
+    // PUT /api/departments/:id — update (super_admin only)
     const putMatch = pathname.match(/^\/api\/departments\/([^/]+)$/);
     if (putMatch && method === 'PUT') {
+        const { user, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(user, ['super_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             const body = await request.json();
             const { data, error } = await db
@@ -101,9 +112,14 @@ export async function handleDepartmentsRoute(request, supabase, pathname, supaba
         }
     }
 
-    // DELETE /api/departments/:id — delete (cascades papers + users)
+    // DELETE /api/departments/:id — delete (super_admin only, cascades papers + users)
     const deleteMatch = pathname.match(/^\/api\/departments\/([^/]+)$/);
     if (deleteMatch && method === 'DELETE') {
+        const { user, error: authErr } = await requireAuth(request, env);
+        if (authErr) return authErr;
+        const roleErr = requireRole(user, ['super_admin'], request);
+        if (roleErr) return roleErr;
+
         try {
             const deptId = deleteMatch[1];
 
